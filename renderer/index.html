@@ -1,0 +1,283 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Integrity Companion</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app">
+      <!-- Drag region for frameless window -->
+      <div class="titlebar">
+        <span class="titlebar-text">Integrity Companion</span>
+        <div class="tab-switcher">
+          <button
+            class="tab-btn active"
+            data-tab="candidate"
+            onclick="switchTab('candidate')"
+          >
+            Candidate
+          </button>
+          <button class="tab-btn" data-tab="debug" onclick="switchTab('debug')">
+            Debug
+          </button>
+        </div>
+      </div>
+
+      <!-- ═══════════════════════════════════════════════ -->
+      <!-- CANDIDATE VIEW — what the test-taker sees      -->
+      <!-- ═══════════════════════════════════════════════ -->
+      <div class="tab-content active" id="tab-candidate">
+        <!-- STATE: pairing — enter 6-digit code -->
+        <div class="candidate-view" id="candidatePairing">
+          <div class="candidate-icon">
+            <svg
+              width="72"
+              height="72"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+            </svg>
+          </div>
+
+          <div class="candidate-status">Enter Pairing Code</div>
+          <div class="candidate-sub">
+            Open your assessment in the browser, then enter the 6-digit code
+            shown on screen.
+          </div>
+
+          <div class="pairing-input-group">
+            <input
+              id="pairingInput"
+              type="text"
+              maxlength="6"
+              placeholder="000000"
+              class="pairing-input"
+              autocomplete="off"
+              autofocus
+            />
+            <button id="pairBtn" class="pair-btn" onclick="handlePair()">
+              Connect
+            </button>
+          </div>
+          <div id="pairingError" class="pairing-error"></div>
+        </div>
+
+        <!-- STATE: paired / pre-check / monitoring -->
+        <div class="candidate-view hidden" id="candidateMonitoring">
+          <div class="candidate-icon" id="candidateIcon">
+            <svg
+              width="72"
+              height="72"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+            </svg>
+          </div>
+
+          <div class="candidate-status" id="candidateStatus">Connecting...</div>
+          <div class="candidate-sub" id="candidateSub">
+            Pairing with assessment session...
+          </div>
+
+          <!-- Checklist -->
+          <div class="candidate-checklist">
+            <div class="check-item" id="checkApp">
+              <div class="check-icon done">
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+              </div>
+              <span>Companion app running</span>
+            </div>
+            <div class="check-item" id="checkPaired">
+              <div class="check-icon waiting">
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <circle cx="12" cy="12" r="10" />
+                  <polyline points="12 6 12 12 16 14" />
+                </svg>
+              </div>
+              <span>Session paired</span>
+            </div>
+            <div class="check-item" id="checkPreCheck">
+              <div class="check-icon waiting">
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <circle cx="12" cy="12" r="10" />
+                  <polyline points="12 6 12 12 16 14" />
+                </svg>
+              </div>
+              <span>System check</span>
+            </div>
+            <div class="check-item" id="checkReady">
+              <div class="check-icon waiting">
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <circle cx="12" cy="12" r="10" />
+                  <polyline points="12 6 12 12 16 14" />
+                </svg>
+              </div>
+              <span>Ready for assessment</span>
+            </div>
+          </div>
+
+          <!-- Blocker warning (hidden by default) -->
+          <div class="blocker-warning hidden" id="blockerWarning">
+            <div class="blocker-title">Please close these applications:</div>
+            <ul class="blocker-list" id="blockerList"></ul>
+          </div>
+
+          <!-- Minimal footer info -->
+          <div class="candidate-footer">
+            <div class="candidate-footer-dot" id="candidateFooterDot"></div>
+            <span id="candidateFooterText">Monitoring in progress</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══════════════════════════════════════════════ -->
+      <!-- DEBUG VIEW — detailed detection dashboard      -->
+      <!-- ═══════════════════════════════════════════════ -->
+      <div class="tab-content" id="tab-debug">
+        <!-- Status Header -->
+        <div class="status-header" id="statusHeader">
+          <div class="status-icon" id="statusIcon">
+            <svg
+              width="48"
+              height="48"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+            </svg>
+          </div>
+          <div class="status-text" id="statusText">Initializing...</div>
+          <div class="status-sub" id="statusSub">
+            Starting detection modules
+          </div>
+        </div>
+
+        <!-- Connection Status -->
+        <div class="connections">
+          <div class="connection-item">
+            <div class="connection-dot" id="wsDot"></div>
+            <span>WebSocket Server</span>
+            <span class="connection-detail" id="wsDetail">Starting...</span>
+          </div>
+          <div class="connection-item">
+            <div class="connection-dot" id="browserDot"></div>
+            <span>Browser Connected</span>
+            <span class="connection-detail" id="browserDetail">Waiting...</span>
+          </div>
+        </div>
+
+        <!-- Score -->
+        <div class="score-section">
+          <div class="score-ring" id="scoreRing">
+            <svg viewBox="0 0 120 120">
+              <circle
+                cx="60"
+                cy="60"
+                r="52"
+                fill="none"
+                stroke="#21262d"
+                stroke-width="8"
+              />
+              <circle
+                id="scoreArc"
+                cx="60"
+                cy="60"
+                r="52"
+                fill="none"
+                stroke="#3fb950"
+                stroke-width="8"
+                stroke-dasharray="326.73"
+                stroke-dashoffset="0"
+                stroke-linecap="round"
+                transform="rotate(-90 60 60)"
+              />
+            </svg>
+            <div class="score-value" id="scoreValue">100</div>
+          </div>
+          <div class="score-label">Integrity Score</div>
+        </div>
+
+        <!-- Stats Row -->
+        <div class="stats-row">
+          <div class="stat">
+            <div class="stat-num" id="signalCount">0</div>
+            <div class="stat-label">Signals</div>
+          </div>
+          <div class="stat">
+            <div class="stat-num" id="osSignals">0</div>
+            <div class="stat-label">OS-Level</div>
+          </div>
+          <div class="stat">
+            <div class="stat-num" id="browserSignals">0</div>
+            <div class="stat-label">Browser</div>
+          </div>
+        </div>
+
+        <!-- Signal Feed -->
+        <div class="signal-feed-header">
+          <span>Detection Feed</span>
+          <span class="signal-feed-count" id="feedCount">0 events</span>
+        </div>
+        <div class="signal-feed" id="signalFeed">
+          <div class="signal-empty">No signals detected yet</div>
+        </div>
+      </div>
+    </div>
+
+    <script src="renderer.js"></script>
+  </body>
+</html>
