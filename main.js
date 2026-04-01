@@ -148,19 +148,9 @@ function initWebSocketServer() {
     reporter.setSessionId(sessionId);
     statusBeforePause = null;
 
-    currentStatus = 'paired';
-    sendToRenderer('session-status', 'paired');
-    const pairResult = await reporter.updateStatus('paired');
-    if (pairResult.error) {
-      console.error(
-        '[Main] Failed to update status to paired:',
-        pairResult.error,
-      );
-    }
-
-    // Check the session's actual status from the backend — the companion
-    // app may have been restarted mid-assessment and should not force the
-    // session back through the pre-check → ready flow.
+    // Check the session's actual status from the backend BEFORE sending
+    // any status update — otherwise we'd overwrite "paused"/"in_progress"
+    // with "paired" and lose the session's real state.
     let backendStatus = null;
     try {
       const res = await fetch(
@@ -183,7 +173,13 @@ function initWebSocketServer() {
       // First-time pairing — run the normal pre-check flow
       currentStatus = 'paired';
       sendToRenderer('session-status', 'paired');
-      await reporter.updateStatus('paired');
+      const pairResult = await reporter.updateStatus('paired');
+      if (pairResult.error) {
+        console.error(
+          '[Main] Failed to update status to paired:',
+          pairResult.error,
+        );
+      }
       runPreCheckAndReady();
     }
   });
