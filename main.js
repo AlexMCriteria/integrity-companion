@@ -274,6 +274,13 @@ async function pauseAssessment(blockerApps) {
       pauseResult.error,
     );
   }
+
+  // If the backend promoted this to hard_warning (due to hard warning lockout
+  // mechanism), respect that status so we don't auto-resume.
+  if (pauseResult.status === 'hard_warning') {
+    currentStatus = 'hard_warning';
+    sendToRenderer('session-status', 'hard_warning');
+  }
 }
 
 /**
@@ -290,6 +297,13 @@ async function resumeAssessment() {
       `[Main] Failed to update status to ${resumeTo}:`,
       resumeResult.error,
     );
+  }
+
+  // If the backend is in hard_warning or locked_out, respect that status
+  // and don't auto-resume — the user must acknowledge via the warning overlay.
+  if (resumeResult.status === 'hard_warning' || resumeResult.status === 'locked_out') {
+    currentStatus = resumeResult.status;
+    sendToRenderer('session-status', resumeResult.status);
   }
 }
 
@@ -329,6 +343,7 @@ const ACTIVE_STATUSES = [
   'ready',
   'in_progress',
   'paused',
+  'hard_warning',
 ];
 
 app.on('before-quit', async (event) => {
