@@ -28,6 +28,7 @@ let clipboardMonitor = null;
 let networkMonitor = null;
 let displayMonitor = null;
 let extensionScanner = null;
+let shutdownReported = false;
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -140,12 +141,34 @@ function initWebSocketServer() {
     sessionId = incomingSessionId;
     reporter.setSessionId(sessionId);
 
-    currentStatus = "paired";
-    sendToRenderer("session-status", "paired");
-    await reporter.updateStatus("paired");
+    // Check the session's actual status from the backend — the companion
+    // app may have been restarted mid-assessment and should not force the
+    // session back through the pre-check → ready flow.
+    let backendStatus = null;
+    try {
+      const res = await fetch(
+        `${ASSESSMENT_BASE_URL}/api/session/${sessionId}/poll`
+      );
+      if (res.ok) {
+        const data = await res.json();
+        backendStatus = data.status;
+      }
+    } catch {
+      // ignore — fall through to normal flow
+    }
 
-    // Start the pre-check → ready flow
-    runPreCheckAndReady();
+    if (backendStatus === "in_progress" || backendStatus === "paused") {
+      // Session was already running — resume it directly
+      currentStatus = "in_progress";
+      sendToRenderer("session-status", "in_progress");
+      await reporter.updateStatus("in_progress");
+    } else {
+      // First-time pairing — run the normal pre-check flow
+      currentStatus = "paired";
+      sendToRenderer("session-status", "paired");
+      await reporter.updateStatus("paired");
+      runPreCheckAndReady();
+    }
   });
 
   // Sync status when the browser transitions (e.g. "Begin Assessment")
@@ -254,6 +277,53 @@ app.whenReady().then(() => {
   initReporter();
 
   sendToRenderer("status", { ready: true, wsPort: WS_PORT });
+});
+
+const ACTIVE_STATUSES = ["paired", "pre_check", "pre_check_blocking", "ready", "in_progress", "paused"];
+
+app.on("before-quit", async (event) => {
+  if (shutdownReported) return;
+
+  if (!sessionId || !ACTIVE_STATUSES.includes(currentStatus)) return;
+
+  event.preventDefault();
+  shutdownReported = true;
+
+  // Best-effort report to backend before quitting (2s timeout)
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 2000);
+
+  try {
+    await Promise.allSettled([
+      fetch(`${ASSESSMENT_BASE_URL}/api/session/${sessionId}/signal`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "companion-app-closed",
+          metadata: { reason: "electron-shutdown", previousStatus: currentStatus },
+          source: "electron",
+        }),
+        signal: controller.signal,
+      }),
+      fetch(`${ASSESSMENT_BASE_URL}/api/session/${sessionId}/status`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          status: "paused",
+          details: {
+            reason: "companion-app-closed",
+            apps: ["Integrity Companion App"],
+          },
+        }),
+        signal: controller.signal,
+      }),
+    ]);
+  } catch {
+    // ignore — best effort
+  }
+
+  clearTimeout(timeout);
+  app.quit();
 });
 
 app.on("window-all-closed", () => {
