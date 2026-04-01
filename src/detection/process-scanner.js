@@ -4,25 +4,90 @@ const os = require('os');
 // Process names to detect — AI tools, screen sharing, cheating tools
 const SUSPICIOUS_PROCESSES = [
   // AI assistants
-  { name: 'Claude', pattern: /claude/i, category: 'ai-tool', severity: 'critical' },
-  { name: 'ChatGPT', pattern: /chatgpt/i, category: 'ai-tool', severity: 'critical' },
-  { name: 'Cluely', pattern: /cluely/i, category: 'ai-tool', severity: 'critical' },
-  { name: 'Copilot', pattern: /copilot/i, category: 'ai-tool', severity: 'high' },
-  { name: 'Cursor', pattern: /\bCursor\b(?!UI)/, category: 'ai-tool', severity: 'high' },
-  { name: 'Windsurf', pattern: /windsurf/i, category: 'ai-tool', severity: 'high' },
-  { name: 'Perplexity', pattern: /perplexity/i, category: 'ai-tool', severity: 'critical' },
+  {
+    name: 'Claude',
+    pattern: /claude/i,
+    category: 'ai-tool',
+    severity: 'critical',
+  },
+  {
+    name: 'ChatGPT',
+    pattern: /chatgpt/i,
+    category: 'ai-tool',
+    severity: 'critical',
+  },
+  {
+    name: 'Cluely',
+    pattern: /cluely/i,
+    category: 'ai-tool',
+    severity: 'critical',
+  },
+  {
+    name: 'Copilot',
+    pattern: /copilot/i,
+    category: 'ai-tool',
+    severity: 'high',
+  },
+  {
+    name: 'Cursor',
+    pattern: /\bCursor\b(?!UI)/,
+    category: 'ai-tool',
+    severity: 'high',
+  },
+  {
+    name: 'Windsurf',
+    pattern: /windsurf/i,
+    category: 'ai-tool',
+    severity: 'high',
+  },
+  {
+    name: 'Perplexity',
+    pattern: /perplexity/i,
+    category: 'ai-tool',
+    severity: 'critical',
+  },
   { name: 'Gemini', pattern: /gemini/i, category: 'ai-tool', severity: 'high' },
 
   // Screen sharing / remote access
-  { name: 'Zoom Screen Share', pattern: /zoom.*share|CptHost/i, category: 'screen-share', severity: 'high' },
-  { name: 'Discord Screen Share', pattern: /discord/i, category: 'screen-share', severity: 'medium' },
-  { name: 'TeamViewer', pattern: /teamviewer/i, category: 'remote-access', severity: 'critical' },
-  { name: 'AnyDesk', pattern: /anydesk/i, category: 'remote-access', severity: 'critical' },
+  {
+    name: 'Zoom Screen Share',
+    pattern: /zoom.*share|CptHost/i,
+    category: 'screen-share',
+    severity: 'high',
+  },
+  {
+    name: 'Discord Screen Share',
+    pattern: /discord/i,
+    category: 'screen-share',
+    severity: 'medium',
+  },
+  {
+    name: 'TeamViewer',
+    pattern: /teamviewer/i,
+    category: 'remote-access',
+    severity: 'critical',
+  },
+  {
+    name: 'AnyDesk',
+    pattern: /anydesk/i,
+    category: 'remote-access',
+    severity: 'critical',
+  },
 
   // Virtual machines
-  { name: 'VirtualBox', pattern: /virtualbox|vbox/i, category: 'vm', severity: 'high' },
+  {
+    name: 'VirtualBox',
+    pattern: /virtualbox|vbox/i,
+    category: 'vm',
+    severity: 'high',
+  },
   { name: 'VMware', pattern: /vmware/i, category: 'vm', severity: 'high' },
-  { name: 'Parallels', pattern: /prl_|parallels/i, category: 'vm', severity: 'high' },
+  {
+    name: 'Parallels',
+    pattern: /prl_|parallels/i,
+    category: 'vm',
+    severity: 'high',
+  },
 ];
 
 class ProcessScanner {
@@ -50,9 +115,11 @@ class ProcessScanner {
   }
 
   getBlockingProcesses() {
-    return SUSPICIOUS_PROCESSES
-      .filter((p) => this.detectedProcesses.has(p.name) && (p.severity === "critical" || p.severity === "high"))
-      .map((p) => p.name);
+    return SUSPICIOUS_PROCESSES.filter(
+      (p) =>
+        this.detectedProcesses.has(p.name) &&
+        (p.severity === 'critical' || p.severity === 'high'),
+    ).map((p) => p.name);
   }
 
   scan() {

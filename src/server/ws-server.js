@@ -18,13 +18,15 @@ class WebSocketServer extends EventEmitter {
       this.emit('client-connected');
 
       // Send handshake
-      ws.send(JSON.stringify({
-        type: 'handshake',
-        payload: {
-          appVersion: '1.0.0',
-          timestamp: Date.now(),
-        },
-      }));
+      ws.send(
+        JSON.stringify({
+          type: 'handshake',
+          payload: {
+            appVersion: '1.0.0',
+            timestamp: Date.now(),
+          },
+        }),
+      );
 
       ws.on('message', (data) => {
         try {

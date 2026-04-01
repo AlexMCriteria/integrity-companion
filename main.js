@@ -1,17 +1,17 @@
-const { app, BrowserWindow, ipcMain, screen } = require("electron");
-const path = require("path");
-const { SignalAggregator } = require("./src/aggregator");
-const { WebSocketServer } = require("./src/server/ws-server");
-const { ProcessScanner } = require("./src/detection/process-scanner");
-const { FilesystemChecker } = require("./src/detection/filesystem-checker");
-const { ClipboardMonitor } = require("./src/detection/clipboard-monitor");
-const { NetworkMonitor } = require("./src/detection/network-monitor");
-const { DisplayMonitor } = require("./src/detection/display-monitor");
-const { ExtensionScanner } = require("./src/detection/extension-scanner");
-const { BackendReporter } = require("./src/reporting/backend-reporter");
+const { app, BrowserWindow, ipcMain, screen } = require('electron');
+const path = require('path');
+const { SignalAggregator } = require('./src/aggregator');
+const { WebSocketServer } = require('./src/server/ws-server');
+const { ProcessScanner } = require('./src/detection/process-scanner');
+const { FilesystemChecker } = require('./src/detection/filesystem-checker');
+const { ClipboardMonitor } = require('./src/detection/clipboard-monitor');
+const { NetworkMonitor } = require('./src/detection/network-monitor');
+const { DisplayMonitor } = require('./src/detection/display-monitor');
+const { ExtensionScanner } = require('./src/detection/extension-scanner');
+const { BackendReporter } = require('./src/reporting/backend-reporter');
 
 const WS_PORT = 18329;
-const ASSESSMENT_BASE_URL = "http://localhost:3000";
+const ASSESSMENT_BASE_URL = 'http://localhost:3000';
 
 let mainWindow = null;
 let aggregator = null;
@@ -35,18 +35,18 @@ function createWindow() {
     width: 480,
     height: 720,
     resizable: true,
-    titleBarStyle: "hiddenInset",
-    backgroundColor: "#0f1117",
+    titleBarStyle: 'hiddenInset',
+    backgroundColor: '#0f1117',
     webPreferences: {
-      preload: path.join(__dirname, "preload.js"),
+      preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
     },
   });
 
-  mainWindow.loadFile(path.join(__dirname, "renderer", "index.html"));
+  mainWindow.loadFile(path.join(__dirname, 'renderer', 'index.html'));
 
-  mainWindow.on("closed", () => {
+  mainWindow.on('closed', () => {
     mainWindow = null;
   });
 }
@@ -60,24 +60,24 @@ function sendToRenderer(channel, data) {
 function initAggregator() {
   aggregator = new SignalAggregator();
 
-  aggregator.on("signal", (signal) => {
-    sendToRenderer("signal", signal);
+  aggregator.on('signal', (signal) => {
+    sendToRenderer('signal', signal);
     if (reporter) {
       reporter.enqueueSignal(signal);
     }
 
     // When a blocking process disappears during pre-check, re-run the check
     if (
-      signal.type === "process-disappeared" &&
-      currentStatus === "pre_check_blocking"
+      signal.type === 'process-disappeared' &&
+      currentStatus === 'pre_check_blocking'
     ) {
       runPreCheckAndReady();
     }
 
     // Pause the assessment if a blocking process appears mid-test
     if (
-      signal.type === "process-detected" &&
-      (currentStatus === "ready" || currentStatus === "in_progress")
+      signal.type === 'process-detected' &&
+      (currentStatus === 'ready' || currentStatus === 'in_progress')
     ) {
       const blockerApps = processScanner.getBlockingProcesses();
       if (blockerApps.length > 0) {
@@ -86,7 +86,7 @@ function initAggregator() {
     }
 
     // Resume the assessment when blocking processes are gone
-    if (signal.type === "process-disappeared" && currentStatus === "paused") {
+    if (signal.type === 'process-disappeared' && currentStatus === 'paused') {
       const blockerApps = processScanner.getBlockingProcesses();
       if (blockerApps.length === 0) {
         resumeAssessment();
@@ -94,8 +94,8 @@ function initAggregator() {
     }
   });
 
-  aggregator.on("score-update", (score) => {
-    sendToRenderer("score-update", score);
+  aggregator.on('score-update', (score) => {
+    sendToRenderer('score-update', score);
   });
 }
 
@@ -129,31 +129,31 @@ function initDetectionModules() {
 
 function initWebSocketServer() {
   wsServer = new WebSocketServer(WS_PORT, (signal) => {
-    aggregator.ingest({ ...signal, source: "browser" });
+    aggregator.ingest({ ...signal, source: 'browser' });
   });
 
-  wsServer.on("client-connected", () => {
-    sendToRenderer("browser-connected", true);
+  wsServer.on('client-connected', () => {
+    sendToRenderer('browser-connected', true);
   });
 
-  wsServer.on("client-disconnected", () => {
-    sendToRenderer("browser-connected", false);
+  wsServer.on('client-disconnected', () => {
+    sendToRenderer('browser-connected', false);
   });
 
   // Auto-pair: browser sends sessionId over WebSocket
-  wsServer.on("auto-pair", async (incomingSessionId) => {
+  wsServer.on('auto-pair', async (incomingSessionId) => {
     if (sessionId === incomingSessionId) return; // Same session, already paired
 
     sessionId = incomingSessionId;
     reporter.setSessionId(sessionId);
     statusBeforePause = null;
 
-    currentStatus = "paired";
-    sendToRenderer("session-status", "paired");
-    const pairResult = await reporter.updateStatus("paired");
+    currentStatus = 'paired';
+    sendToRenderer('session-status', 'paired');
+    const pairResult = await reporter.updateStatus('paired');
     if (pairResult.error) {
       console.error(
-        "[Main] Failed to update status to paired:",
+        '[Main] Failed to update status to paired:',
         pairResult.error,
       );
     }
@@ -174,24 +174,24 @@ function initWebSocketServer() {
       // ignore — fall through to normal flow
     }
 
-    if (backendStatus === "in_progress" || backendStatus === "paused") {
+    if (backendStatus === 'in_progress' || backendStatus === 'paused') {
       // Session was already running — resume it directly
-      currentStatus = "in_progress";
-      sendToRenderer("session-status", "in_progress");
-      await reporter.updateStatus("in_progress");
+      currentStatus = 'in_progress';
+      sendToRenderer('session-status', 'in_progress');
+      await reporter.updateStatus('in_progress');
     } else {
       // First-time pairing — run the normal pre-check flow
-      currentStatus = "paired";
-      sendToRenderer("session-status", "paired");
-      await reporter.updateStatus("paired");
+      currentStatus = 'paired';
+      sendToRenderer('session-status', 'paired');
+      await reporter.updateStatus('paired');
       runPreCheckAndReady();
     }
   });
 
   // Sync status when the browser transitions (e.g. "Begin Assessment")
-  wsServer.on("status-update", (status) => {
+  wsServer.on('status-update', (status) => {
     currentStatus = status;
-    sendToRenderer("session-status", status);
+    sendToRenderer('session-status', status);
   });
 
   wsServer.start();
@@ -210,15 +210,15 @@ function initReporter() {
  * through pre_check → ready.
  */
 async function runPreCheckAndReady() {
-  const isRecheck = currentStatus === "pre_check_blocking";
+  const isRecheck = currentStatus === 'pre_check_blocking';
 
   // Tell assessment we're running pre-checks
-  currentStatus = "pre_check";
-  sendToRenderer("session-status", "pre_check");
-  const preCheckResult = await reporter.updateStatus("pre_check");
+  currentStatus = 'pre_check';
+  sendToRenderer('session-status', 'pre_check');
+  const preCheckResult = await reporter.updateStatus('pre_check');
   if (preCheckResult.error) {
     console.error(
-      "[Main] Failed to update status to pre_check:",
+      '[Main] Failed to update status to pre_check:',
       preCheckResult.error,
     );
   }
@@ -233,30 +233,30 @@ async function runPreCheckAndReady() {
 
   if (blockerApps.length > 0) {
     // Report blockers — assessment app shows "please close these apps"
-    currentStatus = "pre_check_blocking";
-    const blockResult = await reporter.updateStatus("pre_check", {
+    currentStatus = 'pre_check_blocking';
+    const blockResult = await reporter.updateStatus('pre_check', {
       blocker: true,
       apps: blockerApps,
     });
     if (blockResult.error) {
       console.error(
-        "[Main] Failed to update status to pre_check (blocking):",
+        '[Main] Failed to update status to pre_check (blocking):',
         blockResult.error,
       );
     }
-    sendToRenderer("session-status", "pre_check_blocking");
-    sendToRenderer("pre-check-blockers", blockerApps);
+    sendToRenderer('session-status', 'pre_check_blocking');
+    sendToRenderer('pre-check-blockers', blockerApps);
   } else {
     // All clear — move to ready
-    currentStatus = "ready";
-    const readyResult = await reporter.updateStatus("ready");
+    currentStatus = 'ready';
+    const readyResult = await reporter.updateStatus('ready');
     if (readyResult.error) {
       console.error(
-        "[Main] Failed to update status to ready:",
+        '[Main] Failed to update status to ready:',
         readyResult.error,
       );
     }
-    sendToRenderer("session-status", "ready");
+    sendToRenderer('session-status', 'ready');
   }
 }
 
@@ -265,16 +265,16 @@ async function runPreCheckAndReady() {
  */
 async function pauseAssessment(blockerApps) {
   statusBeforePause = currentStatus;
-  currentStatus = "paused";
-  sendToRenderer("session-status", "paused");
-  sendToRenderer("pre-check-blockers", blockerApps);
-  const pauseResult = await reporter.updateStatus("paused", {
-    reason: blockerApps.join(", "),
+  currentStatus = 'paused';
+  sendToRenderer('session-status', 'paused');
+  sendToRenderer('pre-check-blockers', blockerApps);
+  const pauseResult = await reporter.updateStatus('paused', {
+    reason: blockerApps.join(', '),
     apps: blockerApps,
   });
   if (pauseResult.error) {
     console.error(
-      "[Main] Failed to update status to paused:",
+      '[Main] Failed to update status to paused:',
       pauseResult.error,
     );
   }
@@ -284,10 +284,10 @@ async function pauseAssessment(blockerApps) {
  * Resume the assessment after all blocking processes have been closed.
  */
 async function resumeAssessment() {
-  const resumeTo = statusBeforePause || "in_progress";
+  const resumeTo = statusBeforePause || 'in_progress';
   statusBeforePause = null;
   currentStatus = resumeTo;
-  sendToRenderer("session-status", resumeTo);
+  sendToRenderer('session-status', resumeTo);
   const resumeResult = await reporter.updateStatus(resumeTo);
   if (resumeResult.error) {
     console.error(
@@ -299,7 +299,7 @@ async function resumeAssessment() {
 
 // ── IPC Handlers ──────────────────────────────────────
 
-ipcMain.handle("get-status", () => {
+ipcMain.handle('get-status', () => {
   return {
     wsPort: WS_PORT,
     sessionId,
@@ -310,7 +310,7 @@ ipcMain.handle("get-status", () => {
   };
 });
 
-ipcMain.handle("get-detections", () => {
+ipcMain.handle('get-detections', () => {
   return aggregator ? aggregator.getRecentSignals(100) : [];
 });
 
@@ -323,19 +323,19 @@ app.whenReady().then(() => {
   initWebSocketServer();
   initReporter();
 
-  sendToRenderer("status", { ready: true, wsPort: WS_PORT });
+  sendToRenderer('status', { ready: true, wsPort: WS_PORT });
 });
 
 const ACTIVE_STATUSES = [
-  "paired",
-  "pre_check",
-  "pre_check_blocking",
-  "ready",
-  "in_progress",
-  "paused",
+  'paired',
+  'pre_check',
+  'pre_check_blocking',
+  'ready',
+  'in_progress',
+  'paused',
 ];
 
-app.on("before-quit", async (event) => {
+app.on('before-quit', async (event) => {
   if (shutdownReported) return;
 
   if (!sessionId || !ACTIVE_STATUSES.includes(currentStatus)) return;
@@ -350,26 +350,26 @@ app.on("before-quit", async (event) => {
   try {
     await Promise.allSettled([
       fetch(`${ASSESSMENT_BASE_URL}/api/session/${sessionId}/signal`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          type: "companion-app-closed",
+          type: 'companion-app-closed',
           metadata: {
-            reason: "electron-shutdown",
+            reason: 'electron-shutdown',
             previousStatus: currentStatus,
           },
-          source: "electron",
+          source: 'electron',
         }),
         signal: controller.signal,
       }),
       fetch(`${ASSESSMENT_BASE_URL}/api/session/${sessionId}/status`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          status: "paused",
+          status: 'paused',
           details: {
-            reason: "companion-app-closed",
-            apps: ["Integrity Companion App"],
+            reason: 'companion-app-closed',
+            apps: ['Integrity Companion App'],
           },
         }),
         signal: controller.signal,
@@ -383,7 +383,7 @@ app.on("before-quit", async (event) => {
   app.quit();
 });
 
-app.on("window-all-closed", () => {
+app.on('window-all-closed', () => {
   if (processScanner) processScanner.stop();
   if (clipboardMonitor) clipboardMonitor.stop();
   if (networkMonitor) networkMonitor.stop();
@@ -393,7 +393,7 @@ app.on("window-all-closed", () => {
   app.quit();
 });
 
-app.on("activate", () => {
+app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) {
     createWindow();
   }
