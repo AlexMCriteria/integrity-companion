@@ -45,6 +45,16 @@ class ProcessScanner {
     }
   }
 
+  getDetectedProcesses() {
+    return new Set(this.detectedProcesses);
+  }
+
+  getBlockingProcesses() {
+    return SUSPICIOUS_PROCESSES
+      .filter((p) => this.detectedProcesses.has(p.name) && (p.severity === "critical" || p.severity === "high"))
+      .map((p) => p.name);
+  }
+
   scan() {
     const platform = os.platform();
     let cmd;
@@ -78,6 +88,15 @@ class ProcessScanner {
           });
         } else if (!found && this.detectedProcesses.has(proc.name)) {
           this.detectedProcesses.delete(proc.name);
+          this.onSignal({
+            type: 'process-disappeared',
+            severity: 'info',
+            metadata: {
+              processName: proc.name,
+              category: proc.category,
+              resolvedAt: Date.now(),
+            },
+          });
         }
       }
     });

@@ -4,7 +4,6 @@
  * Assessment API contract:
  *   POST /api/session/{sessionId}/signal   { type, metadata, source: "electron" }
  *   POST /api/session/{sessionId}/status   { status, details }
- *   POST /api/session/pair                 { pairingCode }
  */
 
 class BackendReporter {
@@ -58,27 +57,6 @@ class BackendReporter {
       } catch (err) {
         console.error("[Reporter] Failed to send signal:", err.message);
       }
-    }
-  }
-
-  async pair(pairingCode) {
-    try {
-      const res = await fetch(`${this.baseUrl}/api/session/pair`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pairingCode }),
-      });
-
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        return { error: data.error || `HTTP ${res.status}` };
-      }
-
-      const data = await res.json();
-      this.sessionId = data.sessionId;
-      return { sessionId: data.sessionId, status: data.status };
-    } catch (err) {
-      return { error: err.message };
     }
   }
 

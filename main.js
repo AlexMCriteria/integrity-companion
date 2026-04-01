@@ -11,13 +11,15 @@ const { ExtensionScanner } = require("./src/detection/extension-scanner");
 const { BackendReporter } = require("./src/reporting/backend-reporter");
 
 const WS_PORT = 18329;
-const ASSESSMENT_BASE_URL = "http://localhost:3001";
+const ASSESSMENT_BASE_URL = "http://localhost:3000";
 
 let mainWindow = null;
 let aggregator = null;
 let wsServer = null;
 let reporter = null;
 let sessionId = null;
+let currentStatus = null;
+let statusBeforePause = null;
 
 // Detection modules
 let processScanner = null;
@@ -61,6 +63,27 @@ function initAggregator() {
     sendToRenderer("signal", signal);
     if (reporter) {
       reporter.enqueueSignal(signal);
+    }
+
+    // When a blocking process disappears during pre-check, re-run the check
+    if (signal.type === "process-disappeared" && currentStatus === "pre_check_blocking") {
+      runPreCheckAndReady();
+    }
+
+    // Pause the assessment if a blocking process appears mid-test
+    if (signal.type === "process-detected" && (currentStatus === "ready" || currentStatus === "in_progress")) {
+      const blockerApps = processScanner.getBlockingProcesses();
+      if (blockerApps.length > 0) {
+        pauseAssessment(blockerApps);
+      }
+    }
+
+    // Resume the assessment when blocking processes are gone
+    if (signal.type === "process-disappeared" && currentStatus === "paused") {
+      const blockerApps = processScanner.getBlockingProcesses();
+      if (blockerApps.length === 0) {
+        resumeAssessment();
+      }
     }
   });
 
@@ -110,6 +133,27 @@ function initWebSocketServer() {
     sendToRenderer("browser-connected", false);
   });
 
+  // Auto-pair: browser sends sessionId over WebSocket
+  wsServer.on("auto-pair", async (incomingSessionId) => {
+    if (sessionId) return; // Already paired
+
+    sessionId = incomingSessionId;
+    reporter.setSessionId(sessionId);
+
+    currentStatus = "paired";
+    sendToRenderer("session-status", "paired");
+    await reporter.updateStatus("paired");
+
+    // Start the pre-check → ready flow
+    runPreCheckAndReady();
+  });
+
+  // Sync status when the browser transitions (e.g. "Begin Assessment")
+  wsServer.on("status-update", (status) => {
+    currentStatus = status;
+    sendToRenderer("session-status", status);
+  });
+
   wsServer.start();
 }
 
@@ -126,57 +170,64 @@ function initReporter() {
  * through pre_check → ready.
  */
 async function runPreCheckAndReady() {
+  const isRecheck = currentStatus === "pre_check_blocking";
+
   // Tell assessment we're running pre-checks
+  currentStatus = "pre_check";
   sendToRenderer("session-status", "pre_check");
   await reporter.updateStatus("pre_check");
 
-  // Give detection modules a moment to finish initial scans
-  await new Promise((resolve) => setTimeout(resolve, 2000));
+  // Give detection modules a moment to finish initial scans (only on first run)
+  if (!isRecheck) {
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+  }
 
-  // Collect any critical signals that are "blockers"
-  const allSignals = aggregator.getRecentSignals(200);
-  const blockerSignals = allSignals.filter(
-    (s) =>
-      s.type === "process-detected" &&
-      (s.severity === "critical" || s.severity === "high"),
-  );
-  const blockerApps = blockerSignals
-    .map((s) => s.metadata?.processName)
-    .filter(Boolean);
+  // Check currently-running blocking processes (live state, not historical signals)
+  const blockerApps = processScanner.getBlockingProcesses();
 
   if (blockerApps.length > 0) {
     // Report blockers — assessment app shows "please close these apps"
+    currentStatus = "pre_check_blocking";
     await reporter.updateStatus("pre_check", {
       blocker: true,
-      apps: [...new Set(blockerApps)],
+      apps: blockerApps,
     });
     sendToRenderer("session-status", "pre_check_blocking");
-    sendToRenderer("pre-check-blockers", [...new Set(blockerApps)]);
+    sendToRenderer("pre-check-blockers", blockerApps);
   } else {
     // All clear — move to ready
+    currentStatus = "ready";
     await reporter.updateStatus("ready");
     sendToRenderer("session-status", "ready");
   }
 }
 
+/**
+ * Pause the assessment because a blocking process was detected mid-test.
+ */
+async function pauseAssessment(blockerApps) {
+  statusBeforePause = currentStatus;
+  currentStatus = "paused";
+  sendToRenderer("session-status", "paused");
+  sendToRenderer("pre-check-blockers", blockerApps);
+  await reporter.updateStatus("paused", {
+    reason: blockerApps.join(", "),
+    apps: blockerApps,
+  });
+}
+
+/**
+ * Resume the assessment after all blocking processes have been closed.
+ */
+async function resumeAssessment() {
+  const resumeTo = statusBeforePause || "in_progress";
+  statusBeforePause = null;
+  currentStatus = resumeTo;
+  sendToRenderer("session-status", resumeTo);
+  await reporter.updateStatus(resumeTo);
+}
+
 // ── IPC Handlers ──────────────────────────────────────
-
-ipcMain.handle("pair", async (_event, pairingCode) => {
-  if (!reporter) return { error: "Reporter not initialized" };
-
-  const result = await reporter.pair(pairingCode);
-  if (result.error) {
-    return { error: result.error };
-  }
-
-  sessionId = result.sessionId;
-  sendToRenderer("session-status", "paired");
-
-  // Start the pre-check → ready flow
-  runPreCheckAndReady();
-
-  return { sessionId: result.sessionId, status: result.status };
-});
 
 ipcMain.handle("get-status", () => {
   return {
