@@ -46,29 +46,29 @@ class BackendReporter {
     for (const signal of batch) {
       try {
         await fetch(`${this.baseUrl}/api/session/${this.sessionId}/signal`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             type: signal.type,
             metadata: signal.metadata || {},
-            source: "electron",
+            source: 'electron',
           }),
         });
       } catch (err) {
-        console.error("[Reporter] Failed to send signal:", err.message);
+        console.error('[Reporter] Failed to send signal:', err.message);
       }
     }
   }
 
   async updateStatus(status, details) {
-    if (!this.sessionId) return { error: "No session" };
+    if (!this.sessionId) return { error: 'No session' };
 
     try {
       const res = await fetch(
         `${this.baseUrl}/api/session/${this.sessionId}/status`,
         {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ status, details }),
         },
       );

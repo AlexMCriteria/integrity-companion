@@ -3,17 +3,62 @@ const os = require('os');
 
 // Known AI service domains/IPs to watch for
 const SUSPICIOUS_HOSTS = [
-  { pattern: /api\.anthropic\.com|claude\.ai/i, name: 'Anthropic/Claude', severity: 'critical', category: 'ai-service' },
-  { pattern: /api\.openai\.com|chatgpt\.com|chat\.openai\.com/i, name: 'OpenAI/ChatGPT', severity: 'critical', category: 'ai-service' },
-  { pattern: /gemini\.google|generativelanguage\.googleapis/i, name: 'Google Gemini', severity: 'high', category: 'ai-service' },
-  { pattern: /api\.perplexity\.ai|perplexity\.ai/i, name: 'Perplexity', severity: 'critical', category: 'ai-service' },
-  { pattern: /cluely\.com|api\.cluely/i, name: 'Cluely', severity: 'critical', category: 'ai-service' },
-  { pattern: /copilot\.microsoft|github\.copilot/i, name: 'Copilot', severity: 'high', category: 'ai-service' },
-  { pattern: /grok\.x\.ai|api\.x\.ai/i, name: 'Grok', severity: 'high', category: 'ai-service' },
+  {
+    pattern: /api\.anthropic\.com|claude\.ai/i,
+    name: 'Anthropic/Claude',
+    severity: 'critical',
+    category: 'ai-service',
+  },
+  {
+    pattern: /api\.openai\.com|chatgpt\.com|chat\.openai\.com/i,
+    name: 'OpenAI/ChatGPT',
+    severity: 'critical',
+    category: 'ai-service',
+  },
+  {
+    pattern: /gemini\.google|generativelanguage\.googleapis/i,
+    name: 'Google Gemini',
+    severity: 'high',
+    category: 'ai-service',
+  },
+  {
+    pattern: /api\.perplexity\.ai|perplexity\.ai/i,
+    name: 'Perplexity',
+    severity: 'critical',
+    category: 'ai-service',
+  },
+  {
+    pattern: /cluely\.com|api\.cluely/i,
+    name: 'Cluely',
+    severity: 'critical',
+    category: 'ai-service',
+  },
+  {
+    pattern: /copilot\.microsoft|github\.copilot/i,
+    name: 'Copilot',
+    severity: 'high',
+    category: 'ai-service',
+  },
+  {
+    pattern: /grok\.x\.ai|api\.x\.ai/i,
+    name: 'Grok',
+    severity: 'high',
+    category: 'ai-service',
+  },
 
   // Screen share / remote desktop
-  { pattern: /teamviewer\.com/i, name: 'TeamViewer', severity: 'critical', category: 'remote-access' },
-  { pattern: /anydesk\.com/i, name: 'AnyDesk', severity: 'critical', category: 'remote-access' },
+  {
+    pattern: /teamviewer\.com/i,
+    name: 'TeamViewer',
+    severity: 'critical',
+    category: 'remote-access',
+  },
+  {
+    pattern: /anydesk\.com/i,
+    name: 'AnyDesk',
+    severity: 'critical',
+    category: 'remote-access',
+  },
 ];
 
 class NetworkMonitor {

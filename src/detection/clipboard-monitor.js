@@ -2,10 +2,26 @@ const { clipboard } = require('electron');
 
 // Patterns that suggest AI-generated or suspicious clipboard content
 const SUSPICIOUS_PATTERNS = [
-  { pattern: /```[\s\S]{50,}```/m, label: 'code-block', description: 'Large code block in clipboard' },
-  { pattern: /As an AI|I'm an AI|I cannot|I can help/i, label: 'ai-preamble', description: 'AI-style response preamble' },
-  { pattern: /Here's? (?:the|a|my) (?:solution|answer|approach)/i, label: 'ai-answer', description: 'AI-style answer prefix' },
-  { pattern: /Step \d+:|First,.*Second,.*Third,/is, label: 'structured-answer', description: 'Highly structured answer' },
+  {
+    pattern: /```[\s\S]{50,}```/m,
+    label: 'code-block',
+    description: 'Large code block in clipboard',
+  },
+  {
+    pattern: /As an AI|I'm an AI|I cannot|I can help/i,
+    label: 'ai-preamble',
+    description: 'AI-style response preamble',
+  },
+  {
+    pattern: /Here's? (?:the|a|my) (?:solution|answer|approach)/i,
+    label: 'ai-answer',
+    description: 'AI-style answer prefix',
+  },
+  {
+    pattern: /Step \d+:|First,.*Second,.*Third,/is,
+    label: 'structured-answer',
+    description: 'Highly structured answer',
+  },
 ];
 
 class ClipboardMonitor {
@@ -60,7 +76,9 @@ class ClipboardMonitor {
                 patternMatch: label,
                 description,
                 contentLength: currentText.length,
-                preview: currentText.substring(0, 100) + (currentText.length > 100 ? '...' : ''),
+                preview:
+                  currentText.substring(0, 100) +
+                  (currentText.length > 100 ? '...' : ''),
               },
             });
             break;

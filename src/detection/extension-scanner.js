@@ -4,11 +4,23 @@ const os = require('os');
 
 // Known AI/cheating extension IDs and name patterns
 const SUSPICIOUS_EXTENSIONS = [
-  { id: 'fcoeoabgfenejglbffodgkkbkcdhcgfn', name: 'Claude Browser Extension', severity: 'critical' },
+  {
+    id: 'fcoeoabgfenejglbffodgkkbkcdhcgfn',
+    name: 'Claude Browser Extension',
+    severity: 'critical',
+  },
   { namePattern: /claude/i, name: 'Claude Extension', severity: 'critical' },
   { namePattern: /cluely/i, name: 'Cluely Extension', severity: 'critical' },
-  { namePattern: /chatgpt|openai/i, name: 'ChatGPT Extension', severity: 'high' },
-  { namePattern: /perplexity/i, name: 'Perplexity Extension', severity: 'high' },
+  {
+    namePattern: /chatgpt|openai/i,
+    name: 'ChatGPT Extension',
+    severity: 'high',
+  },
+  {
+    namePattern: /perplexity/i,
+    name: 'Perplexity Extension',
+    severity: 'high',
+  },
   { namePattern: /copilot/i, name: 'Copilot Extension', severity: 'high' },
   { namePattern: /grammarly/i, name: 'Grammarly', severity: 'medium' },
   { namePattern: /quillbot/i, name: 'QuillBot', severity: 'high' },
@@ -20,19 +32,38 @@ function getExtensionDirs() {
 
   if (platform === 'darwin') {
     return [
-      path.join(home, 'Library/Application Support/Google/Chrome/Default/Extensions'),
-      path.join(home, 'Library/Application Support/Google/Chrome/Profile 1/Extensions'),
-      path.join(home, 'Library/Application Support/BraveSoftware/Brave-Browser/Default/Extensions'),
-      path.join(home, 'Library/Application Support/Microsoft Edge/Default/Extensions'),
-      path.join(home, 'Library/Application Support/Arc/User Data/Default/Extensions'),
+      path.join(
+        home,
+        'Library/Application Support/Google/Chrome/Default/Extensions',
+      ),
+      path.join(
+        home,
+        'Library/Application Support/Google/Chrome/Profile 1/Extensions',
+      ),
+      path.join(
+        home,
+        'Library/Application Support/BraveSoftware/Brave-Browser/Default/Extensions',
+      ),
+      path.join(
+        home,
+        'Library/Application Support/Microsoft Edge/Default/Extensions',
+      ),
+      path.join(
+        home,
+        'Library/Application Support/Arc/User Data/Default/Extensions',
+      ),
     ];
   }
 
   if (platform === 'win32') {
-    const localAppData = process.env.LOCALAPPDATA || path.join(home, 'AppData', 'Local');
+    const localAppData =
+      process.env.LOCALAPPDATA || path.join(home, 'AppData', 'Local');
     return [
       path.join(localAppData, 'Google/Chrome/User Data/Default/Extensions'),
-      path.join(localAppData, 'BraveSoftware/Brave-Browser/User Data/Default/Extensions'),
+      path.join(
+        localAppData,
+        'BraveSoftware/Brave-Browser/User Data/Default/Extensions',
+      ),
       path.join(localAppData, 'Microsoft/Edge/User Data/Default/Extensions'),
     ];
   }
@@ -74,11 +105,13 @@ class ExtensionScanner {
           const manifestPath = this.findManifest(path.join(extDir, extId));
           if (manifestPath) {
             try {
-              const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+              const manifest = JSON.parse(
+                fs.readFileSync(manifestPath, 'utf8'),
+              );
               const extName = manifest.name || '';
 
               const knownByName = SUSPICIOUS_EXTENSIONS.find(
-                (e) => e.namePattern && e.namePattern.test(extName)
+                (e) => e.namePattern && e.namePattern.test(extName),
               );
 
               if (knownByName) {
