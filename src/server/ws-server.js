@@ -17,12 +17,11 @@ class WebSocketServer extends EventEmitter {
       this.clients.add(ws);
       this.emit('client-connected');
 
-      // Send handshake with session info
+      // Send handshake
       ws.send(JSON.stringify({
         type: 'handshake',
         payload: {
           appVersion: '1.0.0',
-          sessionId: `session_${Date.now()}`,
           timestamp: Date.now(),
         },
       }));
@@ -30,6 +29,14 @@ class WebSocketServer extends EventEmitter {
       ws.on('message', (data) => {
         try {
           const message = JSON.parse(data.toString());
+
+          if (message.type === 'auto-pair' && message.payload?.sessionId) {
+            this.emit('auto-pair', message.payload.sessionId);
+          }
+
+          if (message.type === 'status-update' && message.payload?.status) {
+            this.emit('status-update', message.payload.status);
+          }
 
           if (message.type === 'signal' && message.payload) {
             this.onBrowserSignal(message.payload);

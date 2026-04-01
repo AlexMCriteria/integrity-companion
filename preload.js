@@ -3,7 +3,6 @@ const { contextBridge, ipcRenderer } = require("electron");
 contextBridge.exposeInMainWorld("proctorAPI", {
   getStatus: () => ipcRenderer.invoke("get-status"),
   getDetections: () => ipcRenderer.invoke("get-detections"),
-  pair: (pairingCode) => ipcRenderer.invoke("pair", pairingCode),
 
   onSignal: (callback) => {
     const handler = (_event, signal) => callback(signal);

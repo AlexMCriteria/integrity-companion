@@ -8,7 +8,7 @@ const SUSPICIOUS_PROCESSES = [
   { name: 'ChatGPT', pattern: /chatgpt/i, category: 'ai-tool', severity: 'critical' },
   { name: 'Cluely', pattern: /cluely/i, category: 'ai-tool', severity: 'critical' },
   { name: 'Copilot', pattern: /copilot/i, category: 'ai-tool', severity: 'high' },
-  { name: 'Cursor', pattern: /cursor/i, category: 'ai-tool', severity: 'high' },
+  { name: 'Cursor', pattern: /\bCursor\b(?!UI)/, category: 'ai-tool', severity: 'high' },
   { name: 'Windsurf', pattern: /windsurf/i, category: 'ai-tool', severity: 'high' },
   { name: 'Perplexity', pattern: /perplexity/i, category: 'ai-tool', severity: 'critical' },
   { name: 'Gemini', pattern: /gemini/i, category: 'ai-tool', severity: 'high' },
@@ -45,6 +45,16 @@ class ProcessScanner {
     }
   }
 
+  getDetectedProcesses() {
+    return new Set(this.detectedProcesses);
+  }
+
+  getBlockingProcesses() {
+    return SUSPICIOUS_PROCESSES
+      .filter((p) => this.detectedProcesses.has(p.name) && (p.severity === "critical" || p.severity === "high"))
+      .map((p) => p.name);
+  }
+
   scan() {
     const platform = os.platform();
     let cmd;
@@ -78,6 +88,15 @@ class ProcessScanner {
           });
         } else if (!found && this.detectedProcesses.has(proc.name)) {
           this.detectedProcesses.delete(proc.name);
+          this.onSignal({
+            type: 'process-disappeared',
+            severity: 'info',
+            metadata: {
+              processName: proc.name,
+              category: proc.category,
+              resolvedAt: Date.now(),
+            },
+          });
         }
       }
     });

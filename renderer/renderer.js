@@ -27,49 +27,9 @@ function switchTab(tabName) {
 
 window.switchTab = switchTab;
 
-// ── Pairing ──────────────────────────────────────────
-
-async function handlePair() {
-  const input = document.getElementById("pairingInput");
-  const btn = document.getElementById("pairBtn");
-  const errorEl = document.getElementById("pairingError");
-  const code = input.value.trim();
-
-  if (code.length !== 6) {
-    errorEl.textContent = "Please enter the 6-digit code.";
-    return;
-  }
-
-  btn.disabled = true;
-  btn.textContent = "Connecting...";
-  errorEl.textContent = "";
-
-  const result = await window.proctorAPI.pair(code);
-
-  if (result.error) {
-    errorEl.textContent = result.error;
-    btn.disabled = false;
-    btn.textContent = "Connect";
-    return;
-  }
-
-  // Switch to monitoring view
-  document.getElementById("candidatePairing").classList.add("hidden");
-  document.getElementById("candidateMonitoring").classList.remove("hidden");
-  setCheckDone("checkPaired");
-}
-
-window.handlePair = handlePair;
-
-// Allow Enter key in pairing input
-document.addEventListener("DOMContentLoaded", () => {
-  const input = document.getElementById("pairingInput");
-  if (input) {
-    input.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") handlePair();
-    });
-  }
-});
+// ── Auto-Pairing ────────────────────────────────────
+// Pairing is handled automatically via WebSocket when the browser connects.
+// The main process receives the sessionId and transitions the UI.
 
 // ── Check-item helpers ───────────────────────────────
 
@@ -273,6 +233,9 @@ function handleSessionStatus(status) {
 
   switch (status) {
     case "paired":
+      // Auto-paired via WebSocket — switch to monitoring view
+      document.getElementById("candidatePairing").classList.add("hidden");
+      document.getElementById("candidateMonitoring").classList.remove("hidden");
       setCheckDone("checkPaired");
       setCheckWaiting("checkPreCheck");
       if (candidateStatus) candidateStatus.textContent = "Paired Successfully";

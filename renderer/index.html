@@ -29,7 +29,7 @@
       <!-- CANDIDATE VIEW — what the test-taker sees      -->
       <!-- ═══════════════════════════════════════════════ -->
       <div class="tab-content active" id="tab-candidate">
-        <!-- STATE: pairing — enter 6-digit code -->
+        <!-- STATE: waiting for browser to auto-pair -->
         <div class="candidate-view" id="candidatePairing">
           <div class="candidate-icon">
             <svg
@@ -46,27 +46,11 @@
             </svg>
           </div>
 
-          <div class="candidate-status">Enter Pairing Code</div>
+          <div class="candidate-status">Waiting for Assessment</div>
           <div class="candidate-sub">
-            Open your assessment in the browser, then enter the 6-digit code
-            shown on screen.
+            Open your assessment in the browser. The app will connect
+            automatically.
           </div>
-
-          <div class="pairing-input-group">
-            <input
-              id="pairingInput"
-              type="text"
-              maxlength="6"
-              placeholder="000000"
-              class="pairing-input"
-              autocomplete="off"
-              autofocus
-            />
-            <button id="pairBtn" class="pair-btn" onclick="handlePair()">
-              Connect
-            </button>
-          </div>
-          <div id="pairingError" class="pairing-error"></div>
         </div>
 
         <!-- STATE: paired / pre-check / monitoring -->
